@@ -80,6 +80,18 @@ class FrequencyTrie(object):
     def as_compressed_dict(self):
         return FrequencyTrie._compress_trie(self.trie)
 
+    def merge(self, other):
+        """"addAll" the counts from other."""
+        if not isinstance(other, FrequencyTrie):
+            raise ValueError
+        for key, count in other.items:
+            FrequencyTrie._update_trie(self.trie, key, lambda x: x + count)
+        return
+
+    @property
+    def items(self):
+        raise NotImplementedError
+
 
 if __name__ == '__main__':
     import re
