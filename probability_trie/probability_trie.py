@@ -32,47 +32,53 @@ class FrequencyTrie(object):
         for i in range(len(text) - self.depth):
             yield text[i:i + self.depth]
 
+    @staticmethod
+    def _update_trie(trie, key, func=lambda i: i + 1):
+        """Apply func to the value of this trie at key."""
+        # if we have a defaultdict of a plain type
+        if len(key) == 1:
+            trie[key] = func(trie[key])
+            return
+        if len(key) > 1:
+            FrequencyTrie._update_trie(trie[key[0]], key[1:], func)
+            return
+        raise ValueError
+
     def update_trie(self, key):
-        def _update_trie(trie, key, func=lambda i: i + 1):
-            """Apply func to the value of this trie at key."""
-            # if we have a defaultdict of a plain type
-            if len(key) == 1:
-                trie[key] = func(trie[key])
-                return
-            if len(key) > 1:
-                _update_trie(trie[key[0]], key[1:], func)
-                return
-            raise ValueError
-        return _update_trie(self.trie, key)
+        return FrequencyTrie._update_trie(self.trie, key)
+
+    @staticmethod
+    def _as_dict(trie):
+        """Convert from nested defaultdict to nested dict."""
+        if not isinstance(trie, defaultdict):
+            return trie
+        return {k: FrequencyTrie._as_dict(v) for k, v in trie.items()}
 
     @property
     def as_dict(self):
-        def _as_dict(trie):
-            """Convert from nested defaultdict to nested dict."""
-            if not isinstance(trie, defaultdict):
-                return trie
-            return {k: _as_dict(v) for k, v in trie.items()}
-        return _as_dict(self.trie)
+        return FrequencyTrie._as_dict(self.trie)
+
+    @staticmethod
+    def _compress_trie(trie):
+        if not isinstance(trie, dict):
+            return trie
+
+        compressed_trie = dict()
+        for key, value in trie.items():
+            value = FrequencyTrie._compress_trie(value)
+            if not isinstance(value, dict):
+                compressed_trie[key] = value
+                continue
+            if len(value) == 1:
+                subkey, subvalue = tuple(value.items())[0]
+                compressed_trie[key + subkey] = subvalue
+            else:
+                compressed_trie[key] = value
+        return compressed_trie
 
     @property
     def as_compressed_dict(self):
-        def _compress_trie(trie):
-            if not isinstance(trie, dict):
-                return trie
-
-            compressed_trie = dict()
-            for key, value in trie.items():
-                value = _compress_trie(value)
-                if not isinstance(value, dict):
-                    compressed_trie[key] = value
-                    continue
-                if len(value) == 1:
-                    subkey, subvalue = tuple(value.items())[0]
-                    compressed_trie[key + subkey] = subvalue
-                else:
-                    compressed_trie[key] = value
-            return compressed_trie
-        return _compress_trie(self.trie)
+        return FrequencyTrie._compress_trie(self.trie)
 
 
 if __name__ == '__main__':
