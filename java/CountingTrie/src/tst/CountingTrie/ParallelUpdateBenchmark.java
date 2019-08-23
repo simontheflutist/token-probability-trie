@@ -6,8 +6,7 @@ import org.openjdk.jmh.annotations.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class ParallelUpdateBenchmark {
 
@@ -15,7 +14,8 @@ public class ParallelUpdateBenchmark {
     public static class ParallelUpdateBenchState {
         @Setup(Level.Trial)
         public void setUp() {
-            ngrams = new ArrayList<>();
+            NGrams = new ArrayList<>();
+            sortedNGrams = new ArrayList<>();
 
             String content = null;
             try {
@@ -27,11 +27,15 @@ public class ParallelUpdateBenchmark {
 
             int order = 8;
             for (int i = 0; i < content.length() - order; i++) {
-                ngrams.add(content.subSequence(i, i + order));
+                CharSequence cs = content.subSequence(i, i + order);
+                NGrams.add(cs);
+                sortedNGrams.add(cs);
             }
 
+            Collections.sort(sortedNGrams, CharSequence::compare);
         }
-        List<CharSequence> ngrams;
+        List<CharSequence> NGrams;
+        List<CharSequence> sortedNGrams;
     }
 
     @State(Scope.Benchmark)
@@ -43,15 +47,19 @@ public class ParallelUpdateBenchmark {
         }
     }
 
-    @Benchmark
+    @Benchmark @BenchmarkMode(Mode.AverageTime)
     public void parallelUpdate(ParallelUpdateBenchState pub, BenchResult br) {
-
-        pub.ngrams.stream().parallel().forEach(br.ct::insertRecursive);
+        pub.NGrams.stream().parallel().forEach(br.ct::insertRecursive);
     }
 
-    @Benchmark
+    @Benchmark @BenchmarkMode(Mode.AverageTime)
+    public void parallelUpdateSorted(ParallelUpdateBenchState pub, BenchResult br) {
+        pub.sortedNGrams.stream().parallel().forEach(br.ct::insertRecursive);
+    }
+
+    @Benchmark @BenchmarkMode(Mode.AverageTime)
     public void sequentialUpdate(ParallelUpdateBenchState pub) {
         CountingTrie ct = new CountingTrie();
-        pub.ngrams.stream().sequential().forEach(ct::insertRecursive);
+        pub.NGrams.stream().sequential().forEach(ct::insertRecursive);
     }
 }
