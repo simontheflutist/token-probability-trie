@@ -34,10 +34,19 @@ public class ParallelUpdateBenchmark {
         List<CharSequence> ngrams;
     }
 
+    @State(Scope.Benchmark)
+    public static class BenchResult {
+        CountingTrie ct;
+        @Setup(Level.Trial)
+        public void setUp() {
+            ct = new CountingTrie();
+        }
+    }
+
     @Benchmark
-    public void parallelUpdate(ParallelUpdateBenchState pub) {
-        CountingTrie ct = new CountingTrie();
-        pub.ngrams.stream().parallel().forEach(ct::insertRecursive);
+    public void parallelUpdate(ParallelUpdateBenchState pub, BenchResult br) {
+
+        pub.ngrams.stream().parallel().forEach(br.ct::insertRecursive);
     }
 
     @Benchmark
